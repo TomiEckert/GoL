@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace gol
 {
@@ -104,14 +105,14 @@ namespace gol
 
         private void UpdateRules()
         {
-            for (int x = 0; x < stuff.Count; x++)
+            Parallel.For(0, Width, x =>
             {
-                for (int y = 0; y < stuff[x].Count; y++)
+                for (int y = 0; y < Height; y++)
                 {
                     RuleOne(x, y);
                     RuleTwo(x, y);
                 }
-            }
+            });
         }
 
         private void RuleOne(int x, int y)
