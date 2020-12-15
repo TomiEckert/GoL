@@ -9,8 +9,8 @@ namespace gol
 {
     internal class Map
     {
-        private const double CHANCE = 0.05;
-        private const double SCALE = 4;
+        private const double CHANCE = 0.04;
+        private const double SCALE = 1;
 
         private int Width { get; set; }
         private int Height { get; set; }
