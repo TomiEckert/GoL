@@ -10,8 +10,10 @@ namespace gol
 {
     internal class Map
     {
-        private const double CHANCE = 0.04;
-        private const double SCALE = 1;
+        private const double CHANCE = 0.08;
+        private const double SCALE = 4;
+        bool run = false;
+        Point cursor;
 
         private int Width { get; set; }
         private int Height { get; set; }
@@ -19,6 +21,7 @@ namespace gol
         private bool spaceDown;
         private Random random;
         private Texture2D green;
+        private Texture2D white;
 
         public Map(int width, int height, GraphicsDeviceManager graphics)
         {
@@ -26,20 +29,22 @@ namespace gol
             Width = width;
             Height = height;
 
-            green = new Texture2D(graphics.GraphicsDevice, 1, 1);
-            Color[] data = new Color[1 * 1];
-            for (int pixel = 0; pixel < data.Count(); pixel++)
-            {
-                data[pixel] = Color.Green;
-            }
-            green.SetData(data);
-            GenerateNew();
+            SetupColors(graphics);
+            GenerateNew(false);
         }
         public Map(GraphicsDeviceManager graphics)
         {
             random = new Random();
             Width = (int)Math.Floor(graphics.GraphicsDevice.Viewport.Width / SCALE);
             Height = (int)Math.Floor(graphics.GraphicsDevice.Viewport.Height / SCALE);
+            SetupColors(graphics);
+            
+            GenerateNew(false);
+        }
+
+        private void SetupColors(GraphicsDeviceManager graphics)
+        {
+            cursor = Mouse.GetState().Position;
 
             green = new Texture2D(graphics.GraphicsDevice, 1, 1);
             Color[] data = new Color[1 * 1];
@@ -48,10 +53,21 @@ namespace gol
                 data[pixel] = Color.Green;
             }
             green.SetData(data);
-            GenerateNew();
+
+            white = new Texture2D(graphics.GraphicsDevice, 1, 1);
+            data = new Color[1 * 1];
+            for (int pixel = 0; pixel < data.Count(); pixel++)
+            {
+                data[pixel] = Color.White;
+            }
+            white.SetData(data);
         }
 
         private List<List<PointType>> stuff;
+        private List<List<PointType>> oldStuff;
+        private bool backDown;
+        private bool mouseDown;
+        private bool enterDown;
 
         public PointType this[int x, int y]
         {
@@ -59,7 +75,7 @@ namespace gol
             {
                 if (x < 0 || y < 0 || x > Width - 1 || y > Height - 1)
                     return PointType.Invalid;
-                return stuff[x][y];
+                return oldStuff[x][y];
             }
             set
             {
@@ -67,20 +83,22 @@ namespace gol
             }
         }
 
-        private void GenerateNew()
+        private void GenerateNew(bool empty)
         {
             stuff = new List<List<PointType>>();
+            oldStuff = new List<List<PointType>>();
             for (int x = 0; x < Width; x++)
             {
                 List<PointType> temp = new List<PointType>();
                 for (int y = 0; y < Height; y++)
                 {
-                    if (random.NextDouble() < CHANCE)
+                    if (!empty && random.NextDouble() < CHANCE)
                         temp.Add(PointType.Alive);
                     else
                         temp.Add(PointType.Dead);
                 }
                 stuff.Add(temp);
+                oldStuff.Add(temp.Clone());
             }
         }
 
@@ -88,7 +106,18 @@ namespace gol
         {
             UpdateControls();
 
-            UpdateRules();
+            if (run)
+                UpdateRules();
+
+            UpdateStuff();
+        }
+
+        private void UpdateStuff()
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                oldStuff[x] = stuff[x].Clone();
+            }
         }
 
         public void Draw(GameTime gameTime, SpriteBatch spriteBatch)
@@ -101,6 +130,20 @@ namespace gol
                         spriteBatch.Draw(green, new Rectangle((int)(x * SCALE), (int)(y * SCALE), (int)SCALE, (int)SCALE), Color.White);
                 }
             }
+
+            var mouse = Mouse.GetState().Position;
+            
+            var mX = (int)(mouse.X - SCALE / 2);
+            var mY = (int)(mouse.Y - SCALE / 2);
+
+            mX = (int)((int)(mX / SCALE) * SCALE);
+            mY = (int)((int)(mY / SCALE) * SCALE);
+
+            cursor = new Point(mX, mY);
+
+            var size = new Point((int)SCALE, (int)SCALE);
+
+            spriteBatch.Draw(white, new Rectangle(cursor, size), Color.White);
         }
 
         private void UpdateRules()
@@ -161,14 +204,47 @@ namespace gol
 
         private void UpdateControls()
         {
+            if (Keyboard.GetState().IsKeyDown(Keys.Enter) && !enterDown)
+            {
+                enterDown = true;
+                GenerateNew(false);
+            }
+            else if (enterDown && Keyboard.GetState().IsKeyUp(Keys.Enter))
+            {
+                enterDown = false;
+            }
+
             if (Keyboard.GetState().IsKeyDown(Keys.Space) && !spaceDown)
             {
                 spaceDown = true;
-                GenerateNew();
+                run = !run;
             }
             else if (spaceDown && Keyboard.GetState().IsKeyUp(Keys.Space))
             {
                 spaceDown = false;
+            }
+
+            if (Keyboard.GetState().IsKeyDown(Keys.Back) && !backDown)
+            {
+                backDown = true;
+                GenerateNew(true);
+            }
+            else if (spaceDown && Keyboard.GetState().IsKeyUp(Keys.Back))
+            {
+                backDown = false;
+            }
+
+            if (Mouse.GetState().LeftButton == ButtonState.Pressed && !mouseDown)
+            {
+                mouseDown = true;
+                var pos = cursor;
+                var cur = this[(int)(pos.X / SCALE), (int)(pos.Y / SCALE)];
+                if (cur != PointType.Invalid)
+                    this[(int)(pos.X / SCALE), (int)(pos.Y / SCALE)] = cur == PointType.Alive ? PointType.Dead : PointType.Alive;
+            }
+            else if (mouseDown && Mouse.GetState().LeftButton == ButtonState.Released)
+            {
+                mouseDown = false;
             }
         }
     }

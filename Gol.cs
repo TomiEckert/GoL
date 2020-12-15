@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 
 namespace gol
 {
@@ -14,6 +15,10 @@ namespace gol
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
+            graphics.PreferredBackBufferWidth = 1920;
+            graphics.PreferredBackBufferHeight = 1080;
+            graphics.ApplyChanges();
+            graphics.ToggleFullScreen();
         }
 
         protected override void LoadContent()
@@ -25,8 +30,11 @@ namespace gol
         protected override void Update(GameTime gameTime)
         {
             map.Update(gameTime);
+            if (Keyboard.GetState().IsKeyDown(Keys.Escape))
+                Exit();
+
             count++;
-            if (count >= 2000)
+            if (count >= 200000)
                 Exit();
         }
 
